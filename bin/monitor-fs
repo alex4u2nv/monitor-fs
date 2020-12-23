@@ -47,12 +47,13 @@ if __name__ == "__main__":
     myname = os.path.basename(sys.argv[0])
     pidfile = '/tmp/%s' % myname
     logging.info('Starting as daemon {name}'.format(name=myname))
+    pid_path = "/tmp/{name}.pid".format(name=myname)
 
 
-    @daemonizer.run(pidfile="/tmp/{name}.pid".format(name=myname))
+    @daemonizer.run(pidfile=pid_path)
     def run():
-        print("PID File: " + pidfile)
-        f = open(pidfile, "r")
+        print("PID File: " + pid_path)
+        f = open(pid_path, "r")
         print("PID: " + f.read())
         main()
 
