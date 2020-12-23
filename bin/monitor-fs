@@ -1,0 +1,59 @@
+#!/usr/bin/python
+import argparse
+import logging
+import os
+import sys
+import time
+from daemons import daemonizer
+
+from watchdog.observers import Observer
+
+from monitor.controllers import EventsHandler
+from monitor.services import UpdateQueue
+
+help = "Monitor a folder and write events to SQS"
+
+parser = argparse.ArgumentParser(description=help)
+
+parser.add_argument("--daemon", help="Run in the background",
+                    action="store_true")
+
+parser.add_argument("-q", "--queue_url",
+                    help="Path to ACS. For example https://sqs.us-east-1.amazonaws.com/23423432/myqueue", required=True)
+parser.add_argument("-f", "--folder", "path to folder to monitor", required=True)
+
+args = parser.parse_args()
+
+
+def main():
+    update_queue: UpdateQueue = UpdateQueue(queue_url=args.queue_url)
+    update_queue.test_queue()  # verify that we can send a message to the queue before continuing
+    path = args.folder
+    if not os.path.exists(path):
+        raise Exception("Path to monitor doesn't exist")
+
+    event_handler = EventsHandler(update_queue)
+    observer = Observer()
+    observer.schedule(event_handler, path, recursive=False)
+    observer.start()
+    try:
+        while True:
+            time.sleep(1)
+
+    except KeyboardInterrupt:
+        observer.stop()
+    observer.join()
+
+
+if __name__ == "__main__":
+    myname = os.path.basename(sys.argv[0])
+    pidfile = '/tmp/%s' % myname
+    logging.info('Starting as daemon {name}'.format(name=myname))
+
+
+    @daemonizer.run(pidfile="/tmp/{name}.pid".format(name=myname))
+    def run():
+        main()
+
+
+    run()

@@ -1,0 +1,1 @@
+Monitor a folder and write events to SQS
