@@ -15,12 +15,10 @@ help = "Monitor a folder and write events to SQS"
 
 parser = argparse.ArgumentParser(description=help)
 
-parser.add_argument("--daemon", help="Run in the background",
-                    action="store_true")
-
 parser.add_argument("-q", "--queue_url",
-                    help="Path to ACS. For example https://sqs.us-east-1.amazonaws.com/23423432/myqueue", required=True)
-parser.add_argument("-f", "--folder", "path to folder to monitor", required=True)
+                    help="Path to ACS. For example https://sqs.us-east-1.amazonaws.com/accountid/myqueue",
+                    required=True)
+parser.add_argument("-f", "--folder", help="path to folder to monitor", required=True)
 
 args = parser.parse_args()
 
@@ -34,7 +32,7 @@ def main():
 
     event_handler = EventsHandler(update_queue)
     observer = Observer()
-    observer.schedule(event_handler, path, recursive=False)
+    observer.schedule(event_handler, path, recursive=True)
     observer.start()
     try:
         while True:
@@ -53,6 +51,9 @@ if __name__ == "__main__":
 
     @daemonizer.run(pidfile="/tmp/{name}.pid".format(name=myname))
     def run():
+        print("PID File: " + pidfile)
+        f = open(pidfile, "r")
+        print("PID: " + f.read())
         main()
 
 
