@@ -26,6 +26,7 @@ class ConfigHandler:
                 self.folders = config['folders']
                 self.queue_url = config['queue_url']
         self.__verify_folder_paths()
+        print("Queue_URL: " + self.queue_url)
 
     def __verify_folder_paths(self):
         valid_paths = []

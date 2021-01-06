@@ -31,9 +31,10 @@ if not args.config_file and not (args.queue_url and args.folder):
 
 
 def main():
-    update_queue: UpdateQueue = UpdateQueue(queue_url=args.queue_url)
-    update_queue.test_queue()  # verify that we can send a message to the queue before continuing
     config: ConfigHandler = ConfigHandler(args)
+
+    update_queue: UpdateQueue = UpdateQueue(queue_url=config.queue_url)
+    update_queue.test_queue()  # verify that we can send a message to the queue before continuing
 
     event_handler = EventsHandler(config.queue_url)
     observers = []
