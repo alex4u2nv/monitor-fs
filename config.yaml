@@ -1,0 +1,6 @@
+queue_url: https://sqs.us-east-1.amazonaws.com/accountid/myqueue
+
+folders:
+  - /path/one
+  - /path/two
+  - /path/three

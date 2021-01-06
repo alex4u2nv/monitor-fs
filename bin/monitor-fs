@@ -8,39 +8,51 @@ from daemons import daemonizer
 
 from watchdog.observers import Observer
 
-from monitor.controllers import EventsHandler
+from monitor.controllers import EventsHandler, ConfigHandler
 from monitor.services import UpdateQueue
 
-help = "Monitor a folder and write events to SQS"
+help_info = "Monitor a folder and write events to SQS"
 
-parser = argparse.ArgumentParser(description=help)
+parser = argparse.ArgumentParser(description=help_info)
 
 parser.add_argument("-q", "--queue_url",
                     help="Path to ACS. For example https://sqs.us-east-1.amazonaws.com/accountid/myqueue",
-                    required=True)
-parser.add_argument("-f", "--folder", help="path to folder to monitor", required=True)
+                    required=False)
+parser.add_argument("-f", "--folder", help="path to folder to monitor, or comma separated list of paths",
+                    required=False)
+
+parser.add_argument("-c", "--config_file", help="Full path to config file", required=False)
 
 args = parser.parse_args()
+
+if not args.config_file and not (args.queue_url and args.folder):
+    print("Either -c/--config_file is required or -q/--queue_url and -f/--folder are required")
+    exit(1)
 
 
 def main():
     update_queue: UpdateQueue = UpdateQueue(queue_url=args.queue_url)
     update_queue.test_queue()  # verify that we can send a message to the queue before continuing
-    path = args.folder
-    if not os.path.exists(path):
-        raise Exception("Path to monitor doesn't exist")
+    config: ConfigHandler = ConfigHandler(args)
 
-    event_handler = EventsHandler(update_queue)
-    observer = Observer()
-    observer.schedule(event_handler, path, recursive=True)
-    observer.start()
+    event_handler = EventsHandler(config.queue_url)
+    observers = []
+
+    for folder in config.folders:
+        observer = Observer()
+        observer.schedule(event_handler, folder, recursive=True)
+        observer.start()
+        observers.append(observer)
+
     try:
         while True:
             time.sleep(1)
 
     except KeyboardInterrupt:
-        observer.stop()
-    observer.join()
+        for observer in observers:
+            observer.stop()
+    for observer in observers:
+        observer.join()
 
 
 if __name__ == "__main__":
